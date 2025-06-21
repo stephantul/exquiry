@@ -3,4 +3,4 @@ install:
 	uv run pre-commit install
 
 test:
-	uv run pytest --cov=PACKAGE --cov-report=term-missing
+	uv run pytest --cov=exquiry --cov-report=term-missing

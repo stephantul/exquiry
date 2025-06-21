@@ -1,6 +1,6 @@
 [project]
-name = "PACKAGE"
-description = "DESCRIPTION"
+name = "exquiry"
+description = "Query expansion"
 readme = "README.md"
 dynamic = ["version"]
 requires-python = ">=3.11"
@@ -65,10 +65,10 @@ warn_unused_configs = true
 ignore_missing_imports = true
 
 [tool.setuptools]
-packages = ["PACKAGE"]
+packages = ["exquiry"]
 
 [tool.setuptools_scm]
 # can be empty if no extra settings are needed, presence enables setuptools_scm
 
 [tool.setuptools.dynamic]
-version = {attr = "PACKAGE.version.__version__"}
+version = {attr = "exquiry.version.__version__"}
