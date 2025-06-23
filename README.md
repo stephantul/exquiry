@@ -3,7 +3,7 @@
   EXQUIRY
 </h2>
 
-This is a simple query or document expansion module that implements multiple methods for query or document expansion for sparse information retrieval (IR). This package does very little actual things, but groups a bunch of methods under a common framework, which can be useful for testing or comparisons.
+This is a simple lexical expansion module that implements multiple methods for query or document expansion. It is intended to be used with sparse information retrieval (IR). This package does very little actual things, but groups a bunch of methods under a common framework, which can be useful for testing or comparisons.
 
 # What is this for?
 
