@@ -1,6 +1,6 @@
 [project]
 name = "exquiry"
-description = "Query expansion"
+description = "Document expansion"
 readme = "README.md"
 dynamic = ["version"]
 requires-python = ">=3.11"

@@ -4,11 +4,23 @@ This is a simple query or document expansion module that implements multiple met
 
 # What is this for?
 
-Sparse document representations suffer from the vocabulary mismatch problem: documents that do not share any terms will have a similarity (or score) of 0, and will not be retrievable. This is especially difficult in the context of information retrieval, because queries and the documents that answer them do not necessarily share any tokens. For example, the query `"heart attack symptoms"` does not match the document `"Myocardial infarction typically presents with chest discomfort, shortness of breath, and sweating."` at all.
+Sparse document representations suffer from the vocabulary mismatch problem: documents that do not share any terms will have a similarity (or score) of 0, and will not be retrievable. This is especially difficult in the context of information retrieval, because queries and the documents that answer them do not necessarily share any tokens. For example, the query
+
+```
+"heart attack symptoms"
+```
+
+does not match the document
+
+```
+"Myocardial infarction typically presents with chest discomfort, shortness of breath, and sweating."
+```
+
+at all.
 
 Document expansion is a simple set of techniques to counter this shortcoming: at either query or indexing time, we run document expansion models, which augment the document (i.e., either the query or the document) with additional terms. If done at indexing time, document expansion usually adds _terms that are likely to occur in the query_, while if done at query time, it usually adds synonyms and other terms that increase coverage.
 
-For example, `tilde` will augment `"heart attack symptoms"` with:
+For example, `tilde` (see below) will augment `"heart attack symptoms"` with:
 
 ```
 'chest'
@@ -87,3 +99,15 @@ expander = DocumentExpander({"tilde": t})
 expander.expand("Paris is too hot.")
 
 ```
+
+# What about the name?
+
+The name is a play on words: "inquiry" is semantically related to "query", and this package introduces words from outside of the query into the query. So "exquiry".
+
+# License
+
+MIT
+
+# Author
+
+Stéphan Tulkens
