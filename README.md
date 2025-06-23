@@ -65,14 +65,12 @@ for name, expansion in expansions.items():
 
 ```
 
-The above uses the default models for `tilde` and `doctttttquery`, which are [ielab/TILDE](https://huggingface.co/ielab/TILDE) and [castorini/doc2query-t5-base-msmarco](castorini/doc2query-t5-base-msmarco), respectively.
-
 If you want to instantiate them using one of your own models, you can import the classes directly, and instantiate them using `from_pretrained`.
 
 ```python
 from exquiry.models import Tilde
 
-# Return 500 expansions
+# Return 10 expansions
 t = Tilde.from_pretrained("ielab/TILDE", k=10)
 
 # Use directly
