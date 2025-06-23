@@ -62,7 +62,7 @@ The default models for all expanders are as follows:
 The package is not on pypi yet, use the following:
 
 ```bash
-pip install git+
+pip install git+https://github.com/stephantul/exquiry.git
 ```
 
 # Example of use
