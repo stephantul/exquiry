@@ -1,4 +1,7 @@
-# exquiry
+<h2 align="center">
+  <img width="40%" alt="SKULLLLL" src="assets/skull.png"><br/>
+  EXQUIRY
+</h2>
 
 This is a simple query or document expansion module that implements multiple methods for query or document expansion for sparse information retrieval (IR). This package does very little actual things, but groups a bunch of methods under a common framework, which can be useful for testing or comparisons.
 
@@ -100,9 +103,13 @@ expander.expand("Paris is too hot.")
 
 ```
 
-# What about the name?
+## What about the name?
 
 The name is a play on words: "inquiry" is semantically related to "query", and this package introduces words from outside of the query into the query. So "exquiry".
+
+## What about the skull?
+
+idk
 
 # License
 
