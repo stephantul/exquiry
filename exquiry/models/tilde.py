@@ -227,12 +227,12 @@ class Tilde:
         self.k = k
 
     @classmethod
-    def from_pretrained(cls: type[T], model_name: str, device: str = "cpu") -> T:
+    def from_pretrained(cls: type[T], model_name: str, k: int = 100, device: str = "cpu") -> T:
         """Load a Tilde model from a pretrained model name."""
         tokenizer = BertTokenizerFast.from_pretrained(_NAME_TO_TOKENIZER.get(model_name, model_name))
         model = BertLMHeadModel.from_pretrained(model_name)
         model = model.to(device)  # type: ignore  # invalid typing in transformers
-        return cls(model, tokenizer)
+        return cls(model, tokenizer, k=k)
 
     @property
     def device(self) -> torch.device:

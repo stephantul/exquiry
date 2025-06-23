@@ -9,6 +9,7 @@ dependencies = [
     "torch",
     "transformers",
     "sentencepiece",
+    "sentence-transformers @ git+https://github.com/arthurbr11/sentence-transformers.git@sparse_implementation"
 ]
 
 [build-system]
