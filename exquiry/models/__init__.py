@@ -1,16 +1,11 @@
-from exquiry.models.base import Expander
 from exquiry.models.doc2query import T5Doc2Query
-from exquiry.models.splade import SPLADE  # Assuming SPLADE uses the same Tilde model for now
+from exquiry.models.splade import SPLADE
 from exquiry.models.tilde import Tilde
 from exquiry.types import ExpansionType
 
-_EXPANDER_MAPPING: dict[ExpansionType, type[Expander]] = {
-    ExpansionType.T5DOC2QUERY: T5Doc2Query,
-    ExpansionType.TILDE: Tilde,
-    ExpansionType.SPLADE: SPLADE,
-}
-
-
-def get_expander(expansion_type: ExpansionType) -> type[Expander]:
-    """Get the expander model for the given expansion type."""
-    return _EXPANDER_MAPPING[expansion_type]
+__all__ = [
+    "ExpansionType",
+    "T5Doc2Query",
+    "SPLADE",
+    "Tilde",
+]

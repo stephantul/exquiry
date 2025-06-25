@@ -67,39 +67,27 @@ pip install git+https://github.com/stephantul/exquiry.git
 
 # Example of use
 
-The `DocumentExpander` is the main entrypoint into `exquiry`. A `DocumentExpander` wraps one or more `Expander`s, where an `Expander` is an object that exposes an `expand` function that accepts a document, and which then produces some documents in response.
+`get_expander` is the main entrypoint into `exquiry`. `get_expander` is a function that returns one of the expanders implemented in the package, using the default model and arguments implemented in the package. An expander is simply something that takes in a document and produces expansions.
 
 ```python
-from exquiry import DocumentExpander
+from exquiry import get_expander
 
-expander = DocumentExpander.from_expansion_types(["tilde", "t5doc2query"])
-expansions = expander.expand("Paris is the capital of France. It's where the eiffel tower is")
-for name, expansion in expansions.items():
-    print(f"Expansions for {name}")
-    print(expansion)
+expander = get_expander("tilde")  # or 't5doc2query' or 'splade'
+expansions = expander.expand(["Paris is the capital of France. It's where the eiffel tower is"])
+print(expansions)
 
 ```
 
-If you want to instantiate them using one of your own models, you can import the classes directly, and instantiate them using `from_pretrained`.
+If you want to instantiate them using one of your own models, you can use `get_expander_class`, and instantiate them using `from_pretrained`.
 
 ```python
-from exquiry.models import Tilde
+from exquiry import get_expander_class
 
 # Return 10 expansions
-t = Tilde.from_pretrained("ielab/TILDE", k=10)
+tilde = get_expander_class()
 
 # Use directly
 t.expand("Paris is a great city to live in.")
-
-```
-
-Or you can use it to instantiate a `DocumentExpander`, as follows:
-
-```python
-from exquiry import DocumentExpander
-
-expander = DocumentExpander({"tilde": t})
-expander.expand("Paris is too hot.")
 
 ```
 

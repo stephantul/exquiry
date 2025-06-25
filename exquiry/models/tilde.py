@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import re
-from typing import TypeVar, cast
+from typing import TypeVar
 
 import torch
 from transformers import BertLMHeadModel, BertTokenizerFast
 
+from exquiry.models.base import Expander
 from exquiry.types import ExpansionType
 
 _NAME_TO_TOKENIZER = {"ielab/TILDE": "bert-base-uncased"}
@@ -215,7 +216,7 @@ def _find_stopword_ids(stopwords: set[str], tokenizer: BertTokenizerFast) -> set
     return stop_ids
 
 
-class Tilde:
+class Tilde(Expander):
     expansion_type = ExpansionType.TILDE
 
     def __init__(self, model: BertLMHeadModel, tokenizer: BertTokenizerFast, k: int = 100) -> None:
@@ -227,7 +228,7 @@ class Tilde:
         self.k = k
 
     @classmethod
-    def from_pretrained(cls: type[T], model_name: str, k: int = 100, device: str = "cpu") -> T:
+    def from_pretrained(cls: type[T], model_name: str, k: int = 100, device: str = "mps") -> T:
         """Load a Tilde model from a pretrained model name."""
         tokenizer = BertTokenizerFast.from_pretrained(_NAME_TO_TOKENIZER.get(model_name, model_name))
         model = BertLMHeadModel.from_pretrained(model_name)
@@ -242,20 +243,28 @@ class Tilde:
     @classmethod
     def from_default(cls: type[T]) -> T:
         """Load a default Tilde model."""
-        return cls.from_pretrained(_DEFAULT_MODEL, device="cpu")
+        return cls.from_pretrained(_DEFAULT_MODEL, device="mps")
 
     @torch.no_grad()
-    def expand(self, document: str) -> list[str]:
+    def _expand(self, documents: list[str]) -> list[list[str]]:
         """Generate a query from the given document."""
-        input_ids = cast(torch.Tensor, self.tokenizer.encode(document, return_tensors="pt"))
-        input_ids[:, 0] = 1  # type: ignore  # Set the first token to passage input
-        all_valid_ids: list[int] = sorted(set(self.valid_ids) - set(input_ids[0].tolist()))
-        with torch.no_grad():
-            # Take logits of the CLS token.
-            logits = self.model(input_ids).logits[0, 0][all_valid_ids]
-            s = [all_valid_ids[x] for x in torch.topk(logits, k=self.k).indices]
+        out = []
+        for batch_idx in range(0, len(documents), 32):
+            docs = documents[batch_idx : batch_idx + 32]
+            batch = self.tokenizer.batch_encode_plus(docs, return_tensors="pt", padding=True, truncation=True)
+            batch = batch.to(self.device)  # type: ignore  # invalid typing in transformers
+            batch.input_ids[:, 0] = 1  # type: ignore  # Set the first token to passage input
+            with torch.no_grad():
+                # Take logits of the CLS token.
+                logits = self.model(**batch).logits[:, 0]
+            top = torch.topk(logits, k=self.k, dim=1).indices
+            for s, i in zip(top.tolist(), batch.input_ids):
+                # Filter out stopwords and subtokens.
+                i = set(i.tolist())
+                s = [x for x in s if x in self.valid_ids and x not in i]
+                out.append([self.tokenizer.decode(x) for x in s])
 
-        return [self.tokenizer.decode(x) for x in s]
+        return out
 
 
 T = TypeVar("T", bound=Tilde)

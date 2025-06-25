@@ -5,12 +5,13 @@ from typing import TypeVar
 import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
+from exquiry.models.base import Expander
 from exquiry.types import ExpansionType
 
 _DEFAULT_MODEL = "castorini/doc2query-t5-base-msmarco"
 
 
-class T5Doc2Query:
+class T5Doc2Query(Expander):
     expansion_type = ExpansionType.T5DOC2QUERY
 
     def __init__(
@@ -44,22 +45,26 @@ class T5Doc2Query:
         return self.model.device
 
     @torch.no_grad()
-    def expand(self, document: str) -> list[str]:
+    def _expand(self, documents: list[str]) -> list[list[str]]:
         """Generate a query from the given document."""
-        input_ids = self.tokenizer.encode(document, return_tensors="pt")
-        outputs = self.model.generate(
-            input_ids=input_ids,
-            max_length=self.max_length,
-            do_sample=True,
-            top_k=self.top_k,
-            num_return_sequences=self.k,
-        )
+        out = []
+        for document in documents:
+            input_ids = self.tokenizer.encode(document, return_tensors="pt")
+            outputs = self.model.generate(
+                input_ids=input_ids,
+                max_length=self.max_length,
+                do_sample=True,
+                top_k=self.top_k,
+                num_return_sequences=self.k,
+            )
 
-        out_docs = []
-        for output in outputs:
-            out_docs.append(self.tokenizer.decode(output, skip_special_tokens=True))
+            out_docs = []
+            for output in outputs:
+                out_docs.append(self.tokenizer.decode(output, skip_special_tokens=True))
 
-        return out_docs
+            out.append(out_docs)
+
+        return out
 
 
 T = TypeVar("T", bound=T5Doc2Query)
