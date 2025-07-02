@@ -5,7 +5,19 @@
 
 This is a simple python module that implements multiple methods for query or document expansion. It is intended to be used with sparse information retrieval (IR). This package does very little actual things, but groups a bunch of methods under a common framework, which can be useful for testing or comparisons.
 
-# What is this for?
+# Exquiry in 3 lines
+
+```python
+from exquiry import get_expander
+
+expander = get_expander("tilde")  # or 't5doc2query'
+expansions = expander.expand(["Paris is the capital of France. It's where the eiffel tower is"])
+
+```
+
+Imagine you have a document, and you want to expand it to also include terms that are related to it, so that it is more easily found in an index. This is what query expansion does: it adds related terms to a document, increasing document coverage.
+
+# Explanation
 
 Sparse document models, such as BM25, suffer from the vocabulary mismatch problem: documents that do not share any terms will have a similarity (or score) of 0, and will not be retrieved. This is a big issue, because queries often do not share a lot of terms with the documents that are relevant for that query. For example:
 
@@ -38,7 +50,7 @@ For example, `tilde` (see below) will augment `"heart attack symptoms"` with:
 
 Which leads to a non-zero similarity with the document above, because Tilde is trained to expands the query to the actual symptoms.
 
-# What does it contain?
+# What does `exquiry` contain?
 
 It currently implements the following expanders:
 - [tilde](https://github.com/ielab/TILDE)
