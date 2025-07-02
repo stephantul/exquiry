@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TypeVar, overload
+from collections.abc import Sequence
+from typing import TypeVar
 
 from transformers.tokenization_utils_base import BatchEncoding, PreTrainedTokenizerBase
 
@@ -12,12 +13,7 @@ class Expander:
 
     expansion_type: ExpansionType
 
-    @overload
-    def expand(self, documents: list[str], k: int, show_progressbar: bool) -> list[list[str]]: ...
-    @overload
-    def expand(self, documents: str, k: int, show_progressbar: bool) -> list[str]: ...
-
-    def expand(self, documents: list[str] | str, k: int, show_progressbar: bool = True) -> list[list[str]] | list[str]:
+    def expand(self, documents: Sequence[str], k: int, show_progressbar: bool = True) -> list[list[str]]:
         """
         Expands one or more documents into a list of generated queries.
 
@@ -31,28 +27,39 @@ class Expander:
 
         :return: A list of generated queries for each document, or a list of queries if a single document was provided.
         """
-        single_doc = False
         if isinstance(documents, str):
-            single_doc = True
             documents = [documents]
-
-        result = self._expand(documents, k, show_progressbar)
-
-        if single_doc:
-            return result[0]
-        return result
+        return self._expand(documents, k, show_progressbar)
 
     @classmethod
     def from_default(cls: type[T]) -> T:
         """Load a default expander model."""
         raise NotImplementedError
 
-    def _expand(self, documents: list[str], k: int, show_progressbar: bool) -> list[list[str]]:
+    def _expand(self, documents: Sequence[str], k: int, show_progressbar: bool) -> list[list[str]]:
         """Internal method to expand documents."""
         raise NotImplementedError("This method should be implemented by subclasses.")
 
+    def expand_as_strings(self, documents: Sequence[str], k: int, show_progressbar: bool = True) -> list[str]:
+        """
+        Generate expanded queries as strings.
+
+        This method generates `k` expansions for each document, concatenates them to the document,
+        and returns them as a flat list of strings.
+
+        :param documents: The documents to expand, either as a list of strings or a single string.
+        :param k: The number of expansions to generate for each document.
+        :param show_progressbar: Whether to show a progress bar during expansion.
+        :return: A flat list of expanded queries as strings, concatenated with the original documents.
+        """
+        if isinstance(documents, str):
+            documents = [documents]
+        expansions = self.expand(documents, k, show_progressbar)
+        expansion_strings = [" ".join(exp) for exp in expansions]
+        return [f"{doc} {exp}" for doc, exp in zip(documents, expansion_strings, strict=True)]
+
     def expand_as_tokens(
-        self, tokenizer: PreTrainedTokenizerBase, documents: list[str] | str, k: int, show_progressbar: bool = True
+        self, tokenizer: PreTrainedTokenizerBase, documents: Sequence[str], k: int, show_progressbar: bool = True
     ) -> BatchEncoding:
         """
         Generate tokenized inputs using the expander.
@@ -66,14 +73,8 @@ class Expander:
         :param show_progressbar: Whether to show a progress bar during expansion.
         :return: A BatchEncoding object containing the tokenized expansions.
         """
-        expansions: list[list[str]] | list[str]
-        # This looks weird but makes the typing work correctly.
-        if isinstance(documents, str):
-            expansions = self.expand(documents, k, show_progressbar)
-            pairs = [(documents, " ".join(expansions))]
-        else:
-            expansions = self.expand(documents, k, show_progressbar)
-            pairs = [(doc, " ".join(exp)) for doc, exp in zip(documents, expansions, strict=True)]
+        expansions = self.expand(documents, k, show_progressbar)
+        pairs = [(doc, " ".join(exp)) for doc, exp in zip(documents, expansions, strict=True)]
 
         return tokenizer.batch_encode_plus(pairs, return_tensors="pt", padding=True, truncation=True)
 

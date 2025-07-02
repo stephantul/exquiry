@@ -76,22 +76,16 @@ print(expansions)
 
 ## Expander
 
-An expander is for all intents and purposes a simple interface that exposes two functions:
+An expander is for all intents and purposes a simple interface that exposes three functions:
 
 ### `expand`
 
-Accepts `documents`, a string or list of strings, and `k`, an integer, and produces either a single list of `k` strings (if a single document was passed) or a list of list of `k` strings (if multiple documents were passed).
+Accepts `documents`, a string or list of strings, and `k`, an integer, and produces either a list of list of `k` strings. Note that this function always produces a list, because using sum types as returns is bad for your health.
 
 ```python
 from exquiry import get_expander
 
 expander = get_expander("tilde")
-expansions = expander.expand("Paris is the capital of France. It's where the eiffel tower is", k=5)
-
-print(expansions)
-# list of strings
-# ['city', 'located', 'french', 'de', 'world']
-
 expansions = expander.expand(["heart attack symptoms"], k=5)
 print(expansions)
 # list of list of strings
@@ -119,6 +113,23 @@ expansions = expander.expand_as_tokens(tokenizer, "Paris is the capital of Franc
 print(tokenizer.decode(expansions.input_ids[0]))
 # "<s> Paris is the capital of France. It's where the eiffel tower is</s></s> city located french de world</s>"
 ```
+
+### `expand_as_strings`
+
+This functions the same as the `expand` function, except it returns the original document concatenated with the expansions, separated by a single whitespace. This is useful if your method does not consider expansions separately from the original document, e.g., in bag of words methods.
+
+```python
+from transformers import AutoTokenizer
+
+from exquiry import get_expander
+
+tokenizer = AutoTokenizer.from_pretrained("baai/bge-m3")
+expander = get_expander("tilde")
+expansions = expander.expand_as_strings("Paris is the capital of France. It's where the eiffel tower is", k=5)
+print(expansions)
+# ["Paris is the capital of France. It's where the eiffel tower is city french world located de"]
+```
+
 
 ## Manual instantiation
 

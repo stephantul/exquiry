@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TypeVar
 
 import torch
@@ -43,11 +44,11 @@ class T5Doc2Query(Expander):
         return self.model.device
 
     @torch.no_grad()
-    def _expand(self, documents: list[str], k: int, show_progressbar: bool) -> list[list[str]]:
+    def _expand(self, documents: Sequence[str], k: int, show_progressbar: bool) -> list[list[str]]:
         """Generate a query from the given document."""
         out = []
         for document in tqdm(documents, disable=not show_progressbar):
-            input_ids = self.tokenizer.encode(document, return_tensors="pt").to(self.device)
+            input_ids = self.tokenizer.encode(document, return_tensors="pt").to(self.device)  # type: ignore  # invalid typing in transformers
             outputs = self.model.generate(
                 input_ids=input_ids,
                 max_length=self.max_length,

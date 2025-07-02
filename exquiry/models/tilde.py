@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Collection, TypeVar, cast
+from typing import Collection, Sequence, TypeVar, cast
 
 import torch
 from tqdm import tqdm
@@ -255,29 +255,26 @@ class Tilde(Expander):
         return cls.from_pretrained(_DEFAULT_MODEL, device="mps")
 
     @torch.no_grad()
-    def _expand(self, documents: list[str], k: int, show_progressbar: bool = True) -> list[list[str]]:
+    def _expand(self, documents: Sequence[str], k: int, show_progressbar: bool = True) -> list[list[str]]:
         """Generate a query from the given document."""
         out = []
         for batch_idx in tqdm(range(0, len(documents), 32), disable=not show_progressbar):
-            docs = documents[batch_idx : batch_idx + 32]
+            docs = list(documents[batch_idx : batch_idx + 32])  # coerce to list
             batch = self.tokenizer.batch_encode_plus(docs, return_tensors="pt", padding=True, truncation=True)
             batch = batch.to(self.device)  # type: ignore  # invalid typing in transformers
-            batch.input_ids[:, 0] = 1  # type: ignore  # Set the first token to passage input
             with torch.no_grad():
                 # Take logits of the CLS token.
                 logits = self.model(**batch).logits[:, 0]
             # The top k tokens are the most probable next tokens
-            # We take twice the number of tokens to ensure we have enough valid tokens
             for row, input_ids in zip(logits, batch.input_ids):
-                # Remove stopwords and subtokens from the logits.
+                # Remove stopwords and subtokens from the logits, also remove tokens that are in the input.
+                # We do this by setting the logits of the stopwords to -inf.
                 stop_ids = list(self.stop_ids | set(cast(set[int], input_ids.tolist())))
                 row[stop_ids] = float("-inf")
             top = torch.topk(logits, k=k, dim=1).indices
-            for s, i in zip(top.tolist(), batch.input_ids):
+            for index in top:
                 # Filter out stopwords and subtokens.
-                i = set(i.tolist())
-                s = [x for x in s if x in self.valid_ids and x not in i]
-                out.append([self.tokenizer.decode(x) for x in s])
+                out.append([self.tokenizer.decode(x) for x in index])
 
         return out
 
