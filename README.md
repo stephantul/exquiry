@@ -45,9 +45,8 @@ Which leads to a non-zero similarity with the document above, because Tilde alre
 It currently implements the following expanders:
 - [tilde](https://github.com/ielab/TILDE)
 - [doctttttquery](https://github.com/castorini/docTTTTTquery) (restyled as t5doc2query)
-- [splade](https://github.com/naver/splade)
 
-Note that `doctttttquery` is mostly suited for expanding documents into queries that relate to that documents (i.e., index-time expansion), while `tilde` and `splade` can be used for both.
+Note that `doctttttquery` is mostly suited for expanding documents into queries that relate to that documents (i.e., index-time expansion), while `tilde` can be used for both.
 
 The default models for all expanders are as follows:
 
@@ -55,7 +54,6 @@ The default models for all expanders are as follows:
 |------------------|----------------------------------------------------|
 | TILDE            | [ielab/TILDE](https://huggingface.co/ielab/TILDE)  |
 | t5doc2query      | [castorini/doc2query-t5-base-msmarco](https://huggingface.co/castorini/doc2query-t5-base-msmarco) |
-| SPLADE           | [naver/splade-cocondenser-ensembledistil](https://huggingface.co/naver/splade-cocondenser-ensembledistil) |
 
 # Installation
 
@@ -72,22 +70,70 @@ pip install git+https://github.com/stephantul/exquiry.git
 ```python
 from exquiry import get_expander
 
-expander = get_expander("tilde")  # or 't5doc2query' or 'splade'
+expander = get_expander("tilde")  # or 't5doc2query'
 expansions = expander.expand(["Paris is the capital of France. It's where the eiffel tower is"])
 print(expansions)
 
 ```
 
-If you want to instantiate them using one of your own models, you can use `get_expander_class`, and instantiate them using `from_pretrained`.
+## Expander
+
+An expander is for all intents and purposes a simple interface that exposes two functions:
+
+### expand
+
+Accepts `documents`, a string or list of strings, and `k`, an integer, and produces either a single list of `k` strings (if a single document was passed) or a list of list of `k` strings (if multiple documents were passed).
+
+```python
+from exquiry import get_expander
+
+expander = get_expander("tilde")
+expansions = expander.expand("Paris is the capital of France. It's where the eiffel tower is", k=5)
+
+print(expansions)
+# list of strings
+# ['city', 'located', 'french', 'de', 'world']
+
+expansions = expander.expand(["heart attack symptoms"], k=5)
+print(expansions)
+# list of list of strings
+# [['chest', 'blood', 'include', 'signs', 'may']]
+
+```
+
+### expand_as_tokens
+
+Some sparse embedder models, including [unicoil]() and [deepimpact]() use expansions during inference or indexing. Instead of concatenating these directly with the original text, these are instead added as a text input pair, i.e., separated by a `[SEP]` token from the original input text. To support this use-case, `exquiry` offers a simple helper to create these text pair encodings.
+
+The usage is the same as `expand`, except that it also takes a tokenizer as argument. This tokenizer should be _the tokenizer used in your model_, not the tokenizer used by your expander.
+
+```python
+from transformers import AutoTokenizer
+
+from exquiry import get_expander
+
+tokenizer = AutoTokenizer.from_pretrained("baai/bge-m3")
+expander = get_expander("tilde")
+expansions = expander.expand_as_tokens(tokenizer, "Paris is the capital of France. It's where the eiffel tower is", k=5)
+
+print(tokenizer.decode(expansions.input_ids[0]))
+# "<s> Paris is the capital of France. It's where the eiffel tower is</s></s> city located french de world</s>"
+
+# Ready to input into your model!
+```
+
+## Manual instantiation
+
+If you want to instantiate an expander using one of your own models, you can use `get_expander_class`, and instantiate them using `from_pretrained`.
 
 ```python
 from exquiry import get_expander_class
 
-# Return 10 expansions
-tilde = get_expander_class()
+TildeClass = get_expander_class()
+t = TildeClass.from_pretrained("ielab/TILDE")
 
-# Use directly
-t.expand("Paris is a great city to live in.")
+# Use directly, get 10 expansions
+t.expand("Paris is a great city to live in.", k=10)
 
 ```
 
