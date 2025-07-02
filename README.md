@@ -3,25 +3,23 @@
   EXQUIRY
 </h2>
 
-This is a simple lexical expansion module that implements multiple methods for query or document expansion. It is intended to be used with sparse information retrieval (IR). This package does very little actual things, but groups a bunch of methods under a common framework, which can be useful for testing or comparisons.
+This is a simple python module that implements multiple methods for query or document expansion. It is intended to be used with sparse information retrieval (IR). This package does very little actual things, but groups a bunch of methods under a common framework, which can be useful for testing or comparisons.
 
 # What is this for?
 
-Sparse document representations suffer from the vocabulary mismatch problem: documents that do not share any terms will have a similarity (or score) of 0, and will not be retrievable. This is especially difficult in the context of information retrieval, because queries and the documents that answer them do not necessarily share any tokens. For example, the query
+Sparse document models, such as BM25, suffer from the vocabulary mismatch problem: documents that do not share any terms will have a similarity (or score) of 0, and will not be retrieved. This is a big issue, because queries often do not share a lot of terms with the documents that are relevant for that query. For example:
 
 ```
 "heart attack symptoms"
 ```
 
-does not match the document
+does not share any terms with a document describing the symptoms:
 
 ```
 "Myocardial infarction typically presents with chest discomfort, shortness of breath, and sweating."
 ```
 
-at all.
-
-Document expansion is a simple set of techniques to counter this shortcoming: at either query or indexing time, we run document expansion models, which augment the document (i.e., either the query or the document) with additional terms. If done at indexing time, document expansion usually adds _terms that are likely to occur in the query_, while if done at query time, it usually adds synonyms and other terms that increase coverage.
+_Expansion_ is a simple set of techniques to counter this shortcoming: at either query or indexing time, we run document expansion models, which augment the document (i.e., either the query or the document) with additional terms. If done at indexing time, document expansion usually adds _terms that are likely to occur in the query_, while if done at query time, it usually adds synonyms and other terms that increase coverage.
 
 For example, `tilde` (see below) will augment `"heart attack symptoms"` with:
 
@@ -38,7 +36,7 @@ For example, `tilde` (see below) will augment `"heart attack symptoms"` with:
 'breath'
 ```
 
-Which leads to a non-zero similarity with the document above, because Tilde already expands the query to the actual symptoms.
+Which leads to a non-zero similarity with the document above, because Tilde is trained to expands the query to the actual symptoms.
 
 # What does it contain?
 
@@ -48,7 +46,7 @@ It currently implements the following expanders:
 
 Note that `doctttttquery` is mostly suited for expanding documents into queries that relate to that documents (i.e., index-time expansion), while `tilde` can be used for both.
 
-The default models for all expanders are as follows:
+The default models for these expanders are as follows:
 
 | Expander         | Default Model                                      |
 |------------------|----------------------------------------------------|
@@ -80,7 +78,7 @@ print(expansions)
 
 An expander is for all intents and purposes a simple interface that exposes two functions:
 
-### expand
+### `expand`
 
 Accepts `documents`, a string or list of strings, and `k`, an integer, and produces either a single list of `k` strings (if a single document was passed) or a list of list of `k` strings (if multiple documents were passed).
 
@@ -101,11 +99,11 @@ print(expansions)
 
 ```
 
-### expand_as_tokens
+### `expand_as_tokens`
 
-Some sparse embedder models, including [unicoil]() and [deepimpact]() use expansions during inference or indexing. Instead of concatenating these directly with the original text, these are instead added as a text input pair, i.e., separated by a `[SEP]` token from the original input text. To support this use-case, `exquiry` offers a simple helper to create these text pair encodings.
+Some sparse embedder models, including [coil](https://arxiv.org/abs/2104.07186) and [deep impact](dl.acm.org/doi/pdf/10.1145/3404835.3463030) use expansions during inference or indexing. Instead of concatenating these directly with the original text, these are instead added as a text input pair, i.e., separated by a `[SEP]` token from the original input text. To support this use-case, `exquiry` offers a simple helper to create these text pair encodings.
 
-The usage is the same as `expand`, except that it also takes a tokenizer as argument. This tokenizer should be _the tokenizer used in your model_, not the tokenizer used by your expander.
+The usage is the same as `expand`, except that it also takes a tokenizer as argument. This tokenizer should be _the tokenizer used in your model_, not the tokenizer used by your expander. Here's an example using [`bge-m3`](https://huggingface.co/BAAI/bge-m3).
 
 ```python
 from transformers import AutoTokenizer
@@ -116,10 +114,10 @@ tokenizer = AutoTokenizer.from_pretrained("baai/bge-m3")
 expander = get_expander("tilde")
 expansions = expander.expand_as_tokens(tokenizer, "Paris is the capital of France. It's where the eiffel tower is", k=5)
 
+# Expansions is a BatchEncoding ready to process by your model.
+
 print(tokenizer.decode(expansions.input_ids[0]))
 # "<s> Paris is the capital of France. It's where the eiffel tower is</s></s> city located french de world</s>"
-
-# Ready to input into your model!
 ```
 
 ## Manual instantiation
