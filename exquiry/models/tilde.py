@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import re
-from typing import TypeVar
+from typing import Collection, TypeVar, cast
 
 import torch
+from tqdm import tqdm
 from transformers import BertLMHeadModel, BertTokenizerFast
 
 from exquiry.models.base import Expander
@@ -13,189 +14,191 @@ _NAME_TO_TOKENIZER = {"ielab/TILDE": "bert-base-uncased"}
 _DEFAULT_MODEL = "ielab/TILDE"
 
 # These are stopwords used in NLTK.
-_STOPWORDS = {
-    "i",
-    "me",
-    "my",
-    "myself",
-    "we",
-    "our",
-    "ours",
-    "ourselves",
-    "you",
-    "you're",
-    "you've",
-    "you'll",
-    "you'd",
-    "your",
-    "yours",
-    "yourself",
-    "yourselves",
-    "he",
-    "him",
-    "his",
-    "himself",
-    "she",
-    "she's",
-    "her",
-    "hers",
-    "herself",
-    "it",
-    "it's",
-    "its",
-    "itself",
-    "they",
-    "them",
-    "their",
-    "theirs",
-    "themselves",
-    "what",
-    "which",
-    "who",
-    "whom",
-    "this",
-    "that",
-    "that'll",
-    "these",
-    "those",
-    "am",
-    "is",
-    "are",
-    "was",
-    "were",
-    "be",
-    "been",
-    "being",
-    "have",
-    "has",
-    "had",
-    "having",
-    "do",
-    "does",
-    "did",
-    "doing",
-    "a",
-    "an",
-    "the",
-    "and",
-    "but",
-    "if",
-    "or",
-    "because",
-    "as",
-    "until",
-    "while",
-    "of",
-    "at",
-    "by",
-    "for",
-    "with",
-    "about",
-    "against",
-    "between",
-    "into",
-    "through",
-    "during",
-    "before",
-    "after",
-    "above",
-    "below",
-    "to",
-    "from",
-    "up",
-    "down",
-    "in",
-    "out",
-    "on",
-    "off",
-    "over",
-    "under",
-    "again",
-    "further",
-    "then",
-    "once",
-    "here",
-    "there",
-    "when",
-    "why",
-    "how",
-    "all",
-    "any",
-    "both",
-    "each",
-    "few",
-    "more",
-    "most",
-    "other",
-    "some",
-    "such",
-    "no",
-    "nor",
-    "not",
-    "only",
-    "own",
-    "same",
-    "so",
-    "than",
-    "too",
-    "very",
-    "s",
-    "t",
-    "can",
-    "will",
-    "just",
-    "don",
-    "don't",
-    "should",
-    "should've",
-    "now",
-    "d",
-    "ll",
-    "m",
-    "o",
-    "re",
-    "ve",
-    "y",
-    "ain",
-    "aren",
-    "aren't",
-    "couldn",
-    "couldn't",
-    "didn",
-    "didn't",
-    "doesn",
-    "doesn't",
-    "hadn",
-    "hadn't",
-    "hasn",
-    "hasn't",
-    "haven",
-    "haven't",
-    "isn",
-    "isn't",
-    "ma",
-    "mightn",
-    "mightn't",
-    "mustn",
-    "mustn't",
-    "needn",
-    "needn't",
-    "shan",
-    "shan't",
-    "shouldn",
-    "shouldn't",
-    "wasn",
-    "wasn't",
-    "weren",
-    "weren't",
-    "won",
-    "won't",
-    "wouldn",
-    "wouldn't",
-}
+_STOPWORDS = frozenset(
+    {
+        "i",
+        "me",
+        "my",
+        "myself",
+        "we",
+        "our",
+        "ours",
+        "ourselves",
+        "you",
+        "you're",
+        "you've",
+        "you'll",
+        "you'd",
+        "your",
+        "yours",
+        "yourself",
+        "yourselves",
+        "he",
+        "him",
+        "his",
+        "himself",
+        "she",
+        "she's",
+        "her",
+        "hers",
+        "herself",
+        "it",
+        "it's",
+        "its",
+        "itself",
+        "they",
+        "them",
+        "their",
+        "theirs",
+        "themselves",
+        "what",
+        "which",
+        "who",
+        "whom",
+        "this",
+        "that",
+        "that'll",
+        "these",
+        "those",
+        "am",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "having",
+        "do",
+        "does",
+        "did",
+        "doing",
+        "a",
+        "an",
+        "the",
+        "and",
+        "but",
+        "if",
+        "or",
+        "because",
+        "as",
+        "until",
+        "while",
+        "of",
+        "at",
+        "by",
+        "for",
+        "with",
+        "about",
+        "against",
+        "between",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "to",
+        "from",
+        "up",
+        "down",
+        "in",
+        "out",
+        "on",
+        "off",
+        "over",
+        "under",
+        "again",
+        "further",
+        "then",
+        "once",
+        "here",
+        "there",
+        "when",
+        "why",
+        "how",
+        "all",
+        "any",
+        "both",
+        "each",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "no",
+        "nor",
+        "not",
+        "only",
+        "own",
+        "same",
+        "so",
+        "than",
+        "too",
+        "very",
+        "s",
+        "t",
+        "can",
+        "will",
+        "just",
+        "don",
+        "don't",
+        "should",
+        "should've",
+        "now",
+        "d",
+        "ll",
+        "m",
+        "o",
+        "re",
+        "ve",
+        "y",
+        "ain",
+        "aren",
+        "aren't",
+        "couldn",
+        "couldn't",
+        "didn",
+        "didn't",
+        "doesn",
+        "doesn't",
+        "hadn",
+        "hadn't",
+        "hasn",
+        "hasn't",
+        "haven",
+        "haven't",
+        "isn",
+        "isn't",
+        "ma",
+        "mightn",
+        "mightn't",
+        "mustn",
+        "mustn't",
+        "needn",
+        "needn't",
+        "shan",
+        "shan't",
+        "shouldn",
+        "shouldn't",
+        "wasn",
+        "wasn't",
+        "weren",
+        "weren't",
+        "won",
+        "won't",
+        "wouldn",
+        "wouldn't",
+    }
+)
 
 
-def _find_stopword_ids(stopwords: set[str], tokenizer: BertTokenizerFast) -> set[int]:
+def _find_stopword_ids(stopwords: Collection[str], tokenizer: BertTokenizerFast) -> set[int]:
     """Find stopword IDs in the tokenizer."""
     vocab = tokenizer.get_vocab()
 
@@ -219,21 +222,27 @@ def _find_stopword_ids(stopwords: set[str], tokenizer: BertTokenizerFast) -> set
 class Tilde(Expander):
     expansion_type = ExpansionType.TILDE
 
-    def __init__(self, model: BertLMHeadModel, tokenizer: BertTokenizerFast, k: int = 100) -> None:
+    def __init__(
+        self, model: BertLMHeadModel, tokenizer: BertTokenizerFast, stopwords: Collection[str] | None = _STOPWORDS
+    ) -> None:
         """Initialize the T5Doc2Query model."""
         self.tokenizer = tokenizer
         self.model = model
-        self.stop_ids = _find_stopword_ids(_STOPWORDS, tokenizer)
+        self.stop_ids: set[int]
+        if stopwords is None:
+            self.stop_ids = set()
+        else:
+            self.stop_ids = _find_stopword_ids(stopwords, tokenizer)
+        # A priori valid ids are all IDs in the vocabulary minus the stopwords.
         self.valid_ids = sorted(set(range(tokenizer.vocab_size)) - self.stop_ids)
-        self.k = k
 
     @classmethod
-    def from_pretrained(cls: type[T], model_name: str, k: int = 100, device: str = "mps") -> T:
+    def from_pretrained(cls: type[T], model_name: str, device: str = "mps") -> T:
         """Load a Tilde model from a pretrained model name."""
         tokenizer = BertTokenizerFast.from_pretrained(_NAME_TO_TOKENIZER.get(model_name, model_name))
         model = BertLMHeadModel.from_pretrained(model_name)
         model = model.to(device)  # type: ignore  # invalid typing in transformers
-        return cls(model, tokenizer, k=k)
+        return cls(model, tokenizer)
 
     @property
     def device(self) -> torch.device:
@@ -246,10 +255,10 @@ class Tilde(Expander):
         return cls.from_pretrained(_DEFAULT_MODEL, device="mps")
 
     @torch.no_grad()
-    def _expand(self, documents: list[str]) -> list[list[str]]:
+    def _expand(self, documents: list[str], k: int, show_progressbar: bool = True) -> list[list[str]]:
         """Generate a query from the given document."""
         out = []
-        for batch_idx in range(0, len(documents), 32):
+        for batch_idx in tqdm(range(0, len(documents), 32), disable=not show_progressbar):
             docs = documents[batch_idx : batch_idx + 32]
             batch = self.tokenizer.batch_encode_plus(docs, return_tensors="pt", padding=True, truncation=True)
             batch = batch.to(self.device)  # type: ignore  # invalid typing in transformers
@@ -257,7 +266,13 @@ class Tilde(Expander):
             with torch.no_grad():
                 # Take logits of the CLS token.
                 logits = self.model(**batch).logits[:, 0]
-            top = torch.topk(logits, k=self.k, dim=1).indices
+            # The top k tokens are the most probable next tokens
+            # We take twice the number of tokens to ensure we have enough valid tokens
+            for row, input_ids in zip(logits, batch.input_ids):
+                # Remove stopwords and subtokens from the logits.
+                stop_ids = list(self.stop_ids | set(cast(set[int], input_ids.tolist())))
+                row[stop_ids] = float("-inf")
+            top = torch.topk(logits, k=k, dim=1).indices
             for s, i in zip(top.tolist(), batch.input_ids):
                 # Filter out stopwords and subtokens.
                 i = set(i.tolist())

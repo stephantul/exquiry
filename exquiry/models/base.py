@@ -11,18 +11,18 @@ class Expander:
     expansion_type: ExpansionType
 
     @overload
-    def expand(self, documents: list[str]) -> list[list[str]]: ...
+    def expand(self, documents: list[str], k: int, show_progressbar: bool) -> list[list[str]]: ...
     @overload
-    def expand(self, documents: str) -> list[str]: ...
+    def expand(self, documents: str, k: int, show_progressbar: bool) -> list[str]: ...
 
-    def expand(self, documents: list[str] | str) -> list[list[str]] | list[str]:
+    def expand(self, documents: list[str] | str, k: int, show_progressbar: bool = True) -> list[list[str]] | list[str]:
         """Generate a query from the given document."""
         single_doc = False
         if isinstance(documents, str):
             single_doc = True
             documents = [documents]
 
-        result = self._expand(documents)
+        result = self._expand(documents, k, show_progressbar)
 
         if single_doc:
             return result[0]
@@ -33,7 +33,7 @@ class Expander:
         """Load a default expander model."""
         raise NotImplementedError
 
-    def _expand(self, documents: list[str]) -> list[list[str]]:
+    def _expand(self, documents: list[str], k: int, show_progressbar: bool) -> list[list[str]]:
         """Internal method to expand documents."""
         raise NotImplementedError("This method should be implemented by subclasses.")
 

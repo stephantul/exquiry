@@ -6,4 +6,3 @@ class ExpansionType(str, Enum):
 
     T5DOC2QUERY = "t5doc2query"
     TILDE = "tilde"
-    SPLADE = "splade"
